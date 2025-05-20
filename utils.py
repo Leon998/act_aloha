@@ -35,7 +35,6 @@ class EpisodicDataset(torch.utils.data.Dataset):
             else:
                 start_ts = np.random.choice(episode_len)  # 猜测：采样随机的时刻作为起始时刻，增加数据集的多样性，即从任意时刻开始都能做完任务，从而提高鲁棒？
             # get observation at start_ts only
-            print(episode_len, start_ts)
             qpos = root['/observations/qpos'][start_ts]
             qvel = root['/observations/qvel'][start_ts]
             image_dict = dict()

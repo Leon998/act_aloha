@@ -101,15 +101,17 @@ def main(args):
         exit()
 
     train_dataloader, val_dataloader, stats, _ = load_data(dataset_dir, num_episodes, camera_names, batch_size_train, batch_size_val)
-    # train_dataloader.datasset中每个episode里包含的内容：
-    ### 参数解释：
-        # episode_len：每个episode的原始总长（默认为400）
-        # start_ts：比如100，随机采样的初始时刻，增加数据集的多样性，即从任意时刻开始都能做完任务，从而提高鲁棒？
-        # action_len：episode_len - start_ts = 300，即从start_ts到结束这段时间的action
+    # train_dataloader.dataset中每个episode里包含的内容：
     # image_data(at start_ts), 
     # qpos_data(at start_ts), 
     # action_data([:action_len]为上面提到的action，[action_len:]全为0), 
     # is_pad(帧是(True)否(False)是被填充的，[:action_len]为False，[action_len:]全为True)
+    ### 解释：
+        # episode_len：每个episode的原始总长（默认为400）
+        # start_ts：比如100，随机采样的初始时刻，增加数据集的多样性，即从任意时刻开始都能做完任务，从而提高鲁棒？
+        # action_len：episode_len - start_ts = 300，即从start_ts到结束这段时间的action
+        # 上述操作是为了保证在有多样性的情况下，所有训练集长度相同
+        # is_pad可以帮助屏蔽填充部分action的损失计算。
     
     # save dataset stats
     if not os.path.isdir(ckpt_dir):
