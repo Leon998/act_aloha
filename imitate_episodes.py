@@ -102,10 +102,10 @@ def main(args):
 
     train_dataloader, val_dataloader, stats, _ = load_data(dataset_dir, num_episodes, camera_names, batch_size_train, batch_size_val)
     # train_dataloader.dataset中每个episode里包含的内容：
-    # image_data(at start_ts), 
-    # qpos_data(at start_ts), 
-    # action_data([:action_len]为上面提到的action，[action_len:]全为0), 
-    # is_pad(帧是(True)否(False)是被填充的，[:action_len]为False，[action_len:]全为True)
+    # image_data(at start_ts),                                                          shape: [1, 3, 480, 640]
+    # qpos_data(at start_ts),                                                           shape: [14]
+    # action_data([:action_len]为截取到的action，[action_len:]全为0),                      shape: [400, 14]
+    # is_pad(帧是(True)否(False)是被填充的，[:action_len]为False，[action_len:]全为True)    shape: [400]
     ### 解释：
         # episode_len：每个episode的原始总长（默认为400）
         # start_ts：比如100，随机采样的初始时刻，增加数据集的多样性，即从任意时刻开始都能做完任务，从而提高鲁棒？
@@ -184,7 +184,7 @@ def eval_bc(config, ckpt_name, save_episode=True):
     stats_path = os.path.join(ckpt_dir, f'dataset_stats.pkl')
     with open(stats_path, 'rb') as f:
         stats = pickle.load(f)
-
+    # 定义预处理和后处理函数
     pre_process = lambda s_qpos: (s_qpos - stats['qpos_mean']) / stats['qpos_std']
     post_process = lambda a: a * stats['action_std'] + stats['action_mean']
 
@@ -198,15 +198,15 @@ def eval_bc(config, ckpt_name, save_episode=True):
         from sim_env import make_sim_env
         env = make_sim_env(task_name)
         env_max_reward = env.task.max_reward
-
+    # 设置查询频率和时间聚合参数
     query_frequency = policy_config['num_queries']
     if temporal_agg:
         query_frequency = 1
         num_queries = policy_config['num_queries']
-
+    # 设置最大时间步数（episode_len）
     max_timesteps = int(max_timesteps * 1) # may increase for real-world tasks
-
-    num_rollouts = 50
+    num_epochs = config['num_epochs']
+    num_rollouts = num_epochs
     episode_returns = []
     highest_rewards = []
     for rollout_id in range(num_rollouts):
@@ -228,12 +228,13 @@ def eval_bc(config, ckpt_name, save_episode=True):
         ### evaluation loop
         if temporal_agg:
             all_time_actions = torch.zeros([max_timesteps, max_timesteps+num_queries, state_dim]).cuda()
-
+        # 创建了一个全零的torch张量`qpos_history`，存储每个时间步的机器人关节位置（`qpos`）
         qpos_history = torch.zeros((1, max_timesteps, state_dim)).cuda()
         image_list = [] # for visualization
         qpos_list = []
         target_qpos_list = []
         rewards = []
+        # 在不计算梯度的模式下执行
         with torch.inference_mode():
             for t in range(max_timesteps):
                 ### update onscreen render and wait for DT
@@ -243,6 +244,7 @@ def eval_bc(config, ckpt_name, save_episode=True):
                     plt.pause(DT)
 
                 ### process previous timestep to get qpos and image_list
+                # 处理上一时间步的观测值以获取 qpos 和图像列表
                 obs = ts.observation
                 if 'images' in obs:
                     image_list.append(obs['images'])
@@ -256,7 +258,7 @@ def eval_bc(config, ckpt_name, save_episode=True):
 
                 ### query policy
                 if config['policy_class'] == "ACT":
-                    if t % query_frequency == 0:
+                    if t % query_frequency == 0:  # %取余数
                         all_actions = policy(qpos, curr_image)
                     if temporal_agg:
                         all_time_actions[[t], t:t+num_queries] = all_actions
@@ -350,15 +352,18 @@ def train_bc(train_dataloader, val_dataloader, config):
     for epoch in tqdm(range(num_epochs)):
         print(f'\nEpoch {epoch}')
         # validation
+        # 首先进行验证。将模型设置为评估模式，并对验证数据集进行遍历
+        # 对于每一批数据，都会进行一次前向传播，并将结果添加到 `epoch_dicts` 列表中
         with torch.inference_mode():
             policy.eval()
             epoch_dicts = []
             for batch_idx, data in enumerate(val_dataloader):
                 forward_dict = forward_pass(data, policy)
                 epoch_dicts.append(forward_dict)
+            # 然后，计算这个列表的平均值，并将其添加到 `validation_history` 中
             epoch_summary = compute_dict_mean(epoch_dicts)
             validation_history.append(epoch_summary)
-
+            # 如果这个轮次的验证损失小于之前的最小验证损失，就更新最小验证损失，并保存当前的模型状态
             epoch_val_loss = epoch_summary['loss']
             if epoch_val_loss < min_val_loss:
                 min_val_loss = epoch_val_loss

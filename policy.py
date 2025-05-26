@@ -8,6 +8,7 @@ e = IPython.embed
 
 class ACTPolicy(nn.Module):
     def __init__(self, args_override):
+        # args_override就是policy_config
         super().__init__()
         model, optimizer = build_ACT_model_and_optimizer(args_override)
         self.model = model # CVAE decoder
@@ -34,7 +35,7 @@ class ACTPolicy(nn.Module):
             loss_dict['loss'] = loss_dict['l1'] + loss_dict['kl'] * self.kl_weight
             return loss_dict
         else: # inference time
-            a_hat, _, (_, _) = self.model(qpos, image, env_state) # no action, sample from prior
+            a_hat, _, (_, _) = self.model(qpos, image, env_state) # no action, sample from prior; a_hat.shape: (1, num_queries=100, 14)
             return a_hat
 
     def configure_optimizers(self):
