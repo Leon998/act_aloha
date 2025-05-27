@@ -113,9 +113,10 @@ def main(args):
         # 上述操作是为了保证在有多样性的情况下，所有训练集长度相同
         # is_pad可以帮助屏蔽填充部分action的损失计算。
     
-    # save dataset stats
+    # save dataset stats, 保存数据集统计信息
     if not os.path.isdir(ckpt_dir):
         os.makedirs(ckpt_dir)
+    # 数据集的统计信息`stats`保存到一个名为`dataset_stats.pkl`的文件中。这些统计信息可能包括数据集的一些特性，如平均值、标准差等
     stats_path = os.path.join(ckpt_dir, f'dataset_stats.pkl')
     with open(stats_path, 'wb') as f:
         pickle.dump(stats, f)
@@ -123,7 +124,7 @@ def main(args):
     best_ckpt_info = train_bc(train_dataloader, val_dataloader, config)
     best_epoch, min_val_loss, best_state_dict = best_ckpt_info
 
-    # save best checkpoint
+    # save best checkpoint, 保存最佳检查点
     ckpt_path = os.path.join(ckpt_dir, f'policy_best.ckpt')
     torch.save(best_state_dict, ckpt_path)
     print(f'Best ckpt, val loss {min_val_loss:.6f} @ epoch{best_epoch}')
@@ -199,7 +200,7 @@ def eval_bc(config, ckpt_name, save_episode=True):
         env = make_sim_env(task_name)
         env_max_reward = env.task.max_reward
     # 设置查询频率和时间聚合参数
-    query_frequency = policy_config['num_queries']
+    query_frequency = policy_config['num_queries']  # 也就是chunk_size，默认100
     if temporal_agg:
         query_frequency = 1
         num_queries = policy_config['num_queries']
@@ -258,9 +259,9 @@ def eval_bc(config, ckpt_name, save_episode=True):
 
                 ### query policy
                 if config['policy_class'] == "ACT":
-                    if t % query_frequency == 0:  # %取余数
-                        all_actions = policy(qpos, curr_image)
-                    if temporal_agg:
+                    if t % query_frequency == 0:  # %取余数，每隔query_frequency推理一次
+                        all_actions = policy(qpos, curr_image)  # 即a_hat。形状: (1, num_queries=100, 14)
+                    if temporal_agg:  # 对action做指数加权
                         all_time_actions[[t], t:t+num_queries] = all_actions
                         actions_for_curr_step = all_time_actions[:, t]
                         actions_populated = torch.all(actions_for_curr_step != 0, axis=1)
@@ -271,7 +272,7 @@ def eval_bc(config, ckpt_name, save_episode=True):
                         exp_weights = torch.from_numpy(exp_weights).cuda().unsqueeze(dim=1)
                         raw_action = (actions_for_curr_step * exp_weights).sum(dim=0, keepdim=True)
                     else:
-                        raw_action = all_actions[:, t % query_frequency]
+                        raw_action = all_actions[:, t % query_frequency]  # 取这段chunk的第t % query_frequency位，作为当前时刻action
                 elif config['policy_class'] == "CNNMLP":
                     raw_action = policy(qpos, curr_image)
                 else:

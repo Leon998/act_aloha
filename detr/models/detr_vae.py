@@ -86,6 +86,7 @@ class DETRVAE(nn.Module):
         bs, _ = qpos.shape
         ### Obtain latent z from action sequence
         if is_training:
+            # 训练阶段，即要走前面的CVAE编码器
             # project action sequence to embedding dim, and concat with a CLS token
             action_embed = self.encoder_action_proj(actions) # (bs, seq, hidden_dim)
             qpos_embed = self.encoder_joint_proj(qpos)  # (bs, hidden_dim)
@@ -109,6 +110,7 @@ class DETRVAE(nn.Module):
             latent_sample = reparametrize(mu, logvar)
             latent_input = self.latent_out_proj(latent_sample)
         else:
+            # 推理阶段，只走后面的CVAE解码器
             mu = logvar = None
             latent_sample = torch.zeros([bs, self.latent_dim], dtype=torch.float32).to(qpos.device)
             latent_input = self.latent_out_proj(latent_sample)
@@ -128,6 +130,7 @@ class DETRVAE(nn.Module):
             # fold camera dimension into width dimension
             src = torch.cat(all_cam_features, axis=3)
             pos = torch.cat(all_cam_pos, axis=3)
+            # 以下是CVAE解码器部分的全部输入，扔给Transformer
             hs = self.transformer(src, None, self.query_embed.weight, pos, latent_input, proprio_input, self.additional_pos_embed.weight)[0]
         else:
             qpos = self.input_proj_robot_state(qpos)
