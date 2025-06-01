@@ -1,20 +1,19 @@
 import time
 import os
 import numpy as np
-import argparse
 import matplotlib.pyplot as plt
 import h5py
 
 from constants import PUPPET_GRIPPER_POSITION_NORMALIZE_FN, SIM_TASK_CONFIGS
 from ee_sim_env import make_ee_sim_env
-from sim_env import make_sim_env, BOX_POSE
+from sim_env_debug import make_sim_env, BOX_POSE
 from scripted_policy import PickAndTransferPolicy, InsertionPolicy
 
 import IPython
 e = IPython.embed
 
 
-def main(args):
+def main():
     """
     Generate demonstration data in simulation.
     First rollout the policy (defined in ee space) in ee_sim_env. Obtain the joint trajectory.
@@ -23,10 +22,10 @@ def main(args):
     Save this episode of data, and continue to next episode of data collection.
     """
 
-    task_name = args['task_name']
-    dataset_dir = args['dataset_dir']
-    num_episodes = args['num_episodes']
-    onscreen_render = args['onscreen_render']
+    task_name = "sim_transfer_cube_scripted"
+    dataset_dir = "dataset_debug/"
+    num_episodes = 1
+    onscreen_render = True
     inject_noise = False
     render_cam_name = 'angle'
 
@@ -80,8 +79,19 @@ def main(args):
             right_ctrl = PUPPET_GRIPPER_POSITION_NORMALIZE_FN(ctrl[2])
             joint[6] = left_ctrl
             joint[6+7] = right_ctrl
+        # 经过上述处理之后，joint_traj就完全代表了机械臂的所有关节运动（包括臂+夹爪）
 
         subtask_info = episode[0].observation['env_state'].copy() # box pose at step 0
+
+
+        # debug start (shixu)
+        # Replace the first seven values of each element in joint_traj with the last seven values of the first element
+        reference_gripper_values = joint_traj[0][:7]
+        for joint in joint_traj:
+            joint[:7] = reference_gripper_values
+        # Remove the first seven values of each element in joint_traj
+        joint_traj = [joint[7:] for joint in joint_traj]
+        # debug end (shixu)
 
         # clear unused variables
         del env
@@ -178,12 +188,5 @@ def main(args):
     print(f'Saved to {dataset_dir}')
     print(f'Success: {np.sum(success)} / {len(success)}')
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--task_name', action='store', type=str, help='task_name', required=True)
-    parser.add_argument('--dataset_dir', action='store', type=str, help='dataset saving dir', required=True)
-    parser.add_argument('--num_episodes', action='store', type=int, help='num_episodes', required=False)
-    parser.add_argument('--onscreen_render', action='store_true')
-    
-    main(vars(parser.parse_args()))
-
+if __name__ == '__main__':    
+    main()
