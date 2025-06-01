@@ -103,8 +103,8 @@ def main(args):
     train_dataloader, val_dataloader, stats, _ = load_data(dataset_dir, num_episodes, camera_names, batch_size_train, batch_size_val)
     # train_dataloader.dataset中每个episode里包含的内容：
     # image_data(at start_ts),                                                          shape: [1, 3, 480, 640]
-    # qpos_data(at start_ts),                                                           shape: [14]
-    # action_data([:action_len]为截取到的action，[action_len:]全为0),                      shape: [400, 14]
+    # qpos_data(at start_ts),                                                           shape: [7]
+    # action_data([:action_len]为截取到的action，[action_len:]全为0),                      shape: [400, 7]
     # is_pad(帧是(True)否(False)是被填充的，[:action_len]为False，[action_len:]全为True)    shape: [400]
     ### 解释：
         # episode_len：每个episode的原始总长（默认为400）
@@ -161,6 +161,7 @@ def get_image(ts, camera_names):
 
 
 def eval_bc(config, ckpt_name, save_episode=True):
+    left_arm_init = [0, -0.96, 1.16, 0, -0.3, 0, 0]
     set_seed(1000)
     ckpt_dir = config['ckpt_dir']
     state_dim = config['state_dim']
@@ -187,6 +188,7 @@ def eval_bc(config, ckpt_name, save_episode=True):
         stats = pickle.load(f)
     # 定义预处理和后处理函数
     pre_process = lambda s_qpos: (s_qpos - stats['qpos_mean']) / stats['qpos_std']
+    
     post_process = lambda a: a * stats['action_std'] + stats['action_mean']
 
     # load environment
@@ -251,7 +253,7 @@ def eval_bc(config, ckpt_name, save_episode=True):
                     image_list.append(obs['images'])
                 else:
                     image_list.append({'main': obs['image']})
-                qpos_numpy = np.array(obs['qpos'])
+                qpos_numpy = np.array(obs['qpos'])[7:]
                 qpos = pre_process(qpos_numpy)
                 qpos = torch.from_numpy(qpos).float().cuda().unsqueeze(0)
                 qpos_history[:, t] = qpos
@@ -281,6 +283,8 @@ def eval_bc(config, ckpt_name, save_episode=True):
                 ### post-process actions
                 raw_action = raw_action.squeeze(0).cpu().numpy()
                 action = post_process(raw_action)
+                # 左臂初始化
+                action = np.concatenate((left_arm_init, action))
                 target_qpos = action
 
                 ### step the environment
@@ -344,6 +348,9 @@ def train_bc(train_dataloader, val_dataloader, config):
 
     policy = make_policy(policy_class, policy_config)
     policy.cuda()
+    if not torch.cuda.is_available():
+        raise RuntimeError("CUDA is not available. Training requires a CUDA-enabled device.")
+    print(f"Using CUDA device: {torch.cuda.get_device_name(torch.cuda.current_device())}")
     optimizer = make_optimizer(policy_class, policy)
 
     train_history = []

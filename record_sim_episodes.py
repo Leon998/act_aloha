@@ -6,7 +6,7 @@ import h5py
 
 from constants import PUPPET_GRIPPER_POSITION_NORMALIZE_FN, SIM_TASK_CONFIGS
 from ee_sim_env import make_ee_sim_env
-from sim_env_debug import make_sim_env, BOX_POSE
+from sim_env import make_sim_env, BOX_POSE
 from scripted_policy import PickAndTransferPolicy, InsertionPolicy
 
 import IPython
@@ -87,6 +87,7 @@ def main():
         # debug start (shixu)
         # Replace the first seven values of each element in joint_traj with the last seven values of the first element
         reference_gripper_values = joint_traj[0][:7]
+        print(reference_gripper_values)
         for joint in joint_traj:
             joint[:7] = reference_gripper_values
         # Remove the first seven values of each element in joint_traj
