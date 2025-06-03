@@ -187,8 +187,9 @@ def eval_bc(config, ckpt_name, save_episode=True):
     with open(stats_path, 'rb') as f:
         stats = pickle.load(f)
     # 定义预处理和后处理函数
+    # 预处理：减去均值并除以标准差，使数据的分布变得均匀，好输入模型
     pre_process = lambda s_qpos: (s_qpos - stats['qpos_mean']) / stats['qpos_std']
-    
+    # 后处理：从均匀分布回到action的实际空间
     post_process = lambda a: a * stats['action_std'] + stats['action_mean']
 
     # load environment
@@ -262,7 +263,7 @@ def eval_bc(config, ckpt_name, save_episode=True):
                 ### query policy
                 if config['policy_class'] == "ACT":
                     if t % query_frequency == 0:  # %取余数，每隔query_frequency推理一次
-                        all_actions = policy(qpos, curr_image)  # 即a_hat。形状: (1, num_queries=100, 14)
+                        all_actions = policy(qpos, curr_image)  # 即a_hat。形状: (1, num_queries=100, 7)
                     if temporal_agg:  # 对action做指数加权
                         all_time_actions[[t], t:t+num_queries] = all_actions
                         actions_for_curr_step = all_time_actions[:, t]
