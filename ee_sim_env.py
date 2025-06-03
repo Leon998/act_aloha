@@ -168,7 +168,7 @@ class TransferCubeEETask(BimanualViperXEETask):
 
     @staticmethod
     def get_env_state(physics):
-        env_state = physics.data.qpos.copy()[16:]
+        env_state = physics.data.qpos.copy()[16:]  # 小方块的pose (position: xyz, orientation: wxyz)
         return env_state
 
     def get_reward(self, physics):
