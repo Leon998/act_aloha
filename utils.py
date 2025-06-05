@@ -37,9 +37,10 @@ class EpisodicDataset(torch.utils.data.Dataset):
             # get observation at start_ts only
             qpos = root['/observations/qpos'][start_ts][7:]
             qvel = root['/observations/qvel'][start_ts][7:]
-            image_dict = dict()
-            for cam_name in self.camera_names:
-                image_dict[cam_name] = root[f'/observations/images/{cam_name}'][start_ts]
+            env_state = root['/observations/env_state'][start_ts]
+            # image_dict = dict()
+            # for cam_name in self.camera_names:
+            #     image_dict[cam_name] = root[f'/observations/images/{cam_name}'][start_ts]
             # get all actions after and including start_ts
             if is_sim:
                 action = root['/action'][start_ts:][:, 7:]
@@ -55,40 +56,46 @@ class EpisodicDataset(torch.utils.data.Dataset):
         is_pad[action_len:] = 1
 
         # new axis for different cameras
-        all_cam_images = []
-        for cam_name in self.camera_names:
-            all_cam_images.append(image_dict[cam_name])
-        all_cam_images = np.stack(all_cam_images, axis=0)
+        # all_cam_images = []
+        # for cam_name in self.camera_names:
+        #     all_cam_images.append(image_dict[cam_name])
+        # all_cam_images = np.stack(all_cam_images, axis=0)
 
         # construct observations
-        image_data = torch.from_numpy(all_cam_images)
+        # image_data = torch.from_numpy(all_cam_images)
         qpos_data = torch.from_numpy(qpos).float()
+        env_state_data = torch.from_numpy(env_state).float()
         action_data = torch.from_numpy(padded_action).float()
         is_pad = torch.from_numpy(is_pad).bool()
 
         # channel last
-        image_data = torch.einsum('k h w c -> k c h w', image_data)
+        # image_data = torch.einsum('k h w c -> k c h w', image_data)
 
         # normalize image and change dtype to float
-        image_data = image_data / 255.0
+        # image_data = image_data / 255.0
+        env_state_data[:3] = (env_state_data[:3] - self.norm_stats["env_pos_mean"]) / self.norm_stats["env_pos_std"]
         action_data = (action_data - self.norm_stats["action_mean"]) / self.norm_stats["action_std"]
         qpos_data = (qpos_data - self.norm_stats["qpos_mean"]) / self.norm_stats["qpos_std"]
 
-        return image_data, qpos_data, action_data, is_pad
+        return env_state_data, qpos_data, action_data, is_pad
 
 
 def get_norm_stats(dataset_dir, num_episodes):
     all_qpos_data = []
+    all_env_pos_data = []
     all_action_data = []
     for episode_idx in range(num_episodes):
         dataset_path = os.path.join(dataset_dir, f'episode_{episode_idx}.hdf5')
         with h5py.File(dataset_path, 'r') as root:
             qpos = root['/observations/qpos'][()][:, 7:]
             qvel = root['/observations/qvel'][()][:, 7:]
+            env_pos = root['/observations/env_state'][()][:,:3]
             action = root['/action'][()][:, 7:]
         all_qpos_data.append(torch.from_numpy(qpos))
+        all_env_pos_data.append(torch.from_numpy(env_pos))
         all_action_data.append(torch.from_numpy(action))
     all_qpos_data = torch.stack(all_qpos_data)
+    all_env_pos_data = torch.stack(all_env_pos_data)
     all_action_data = torch.stack(all_action_data)
     all_action_data = all_action_data
 
@@ -102,8 +109,14 @@ def get_norm_stats(dataset_dir, num_episodes):
     qpos_std = all_qpos_data.std(dim=[0, 1], keepdim=True)
     qpos_std = torch.clip(qpos_std, 1e-2, np.inf) # clipping
 
+    # normalize env_pos data
+    env_pos_mean = all_env_pos_data.mean(dim=[0, 1], keepdim=True)
+    env_pos_std = all_env_pos_data.std(dim=[0, 1], keepdim=True)
+    env_pos_std = torch.clip(env_pos_std, 1e-2, np.inf) # clipping
+
     stats = {"action_mean": action_mean.numpy().squeeze(), "action_std": action_std.numpy().squeeze(),
              "qpos_mean": qpos_mean.numpy().squeeze(), "qpos_std": qpos_std.numpy().squeeze(),
+             "env_pos_mean": env_pos_mean.numpy().squeeze(), "env_pos_std": env_pos_std.numpy().squeeze(),
              "example_qpos": qpos}
 
     return stats

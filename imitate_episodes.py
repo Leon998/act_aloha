@@ -49,7 +49,8 @@ def main(args):
     # fixed parameters
     state_dim = 7
     lr_backbone = 1e-5
-    backbone = 'resnet18'
+    # backbone = 'resnet18'
+    backbone = None
     if policy_class == 'ACT':
         enc_layers = 4
         dec_layers = 7
@@ -102,10 +103,10 @@ def main(args):
 
     train_dataloader, val_dataloader, stats, _ = load_data(dataset_dir, num_episodes, camera_names, batch_size_train, batch_size_val)
     # train_dataloader.dataset中每个episode里包含的内容：
-    # image_data(at start_ts),                                                          shape: [1, 3, 480, 640]
+    # env_state(at start_ts), (position + orientation)                                  shape: [7]
     # qpos_data(at start_ts),                                                           shape: [7]
     # action_data([:action_len]为截取到的action，[action_len:]全为0),                      shape: [400, 7]
-    # is_pad(帧是(True)否(False)是被填充的，[:action_len]为False，[action_len:]全为True)    shape: [400]
+    # is_pad(帧是(True)否(False)是被填充的，[:action_len]为False，[action_len:]全为True)     shape: [400]
     ### 解释：
         # episode_len：每个episode的原始总长（默认为400）
         # start_ts：比如100，随机采样的初始时刻，增加数据集的多样性，即从任意时刻开始都能做完任务，从而提高鲁棒？
@@ -333,9 +334,12 @@ def eval_bc(config, ckpt_name, save_episode=True):
 
 
 def forward_pass(data, policy):
-    image_data, qpos_data, action_data, is_pad = data
-    image_data, qpos_data, action_data, is_pad = image_data.cuda(), qpos_data.cuda(), action_data.cuda(), is_pad.cuda()
-    return policy(qpos_data, image_data, action_data, is_pad) # TODO remove None
+    # image_data, qpos_data, action_data, is_pad = data
+    # image_data, qpos_data, action_data, is_pad = image_data.cuda(), qpos_data.cuda(), action_data.cuda(), is_pad.cuda()
+    # return policy(qpos_data, image_data, action_data, is_pad) # TODO remove None
+    env_state_data, qpos_data, action_data, is_pad = data
+    env_state_data, qpos_data, action_data, is_pad = env_state_data.cuda(), qpos_data.cuda(), action_data.cuda(), is_pad.cuda()
+    return policy(qpos_data, env_state_data, action_data, is_pad) # TODO remove None
 
 
 def train_bc(train_dataloader, val_dataloader, config):

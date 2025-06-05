@@ -232,12 +232,15 @@ def build_encoder(args):
 def build(args):
     state_dim = 7 # TODO hardcode
 
-    # From state
-    # backbone = None # from state for now, no need for conv nets
-    # From image
-    backbones = []
-    backbone = build_backbone(args)
-    backbones.append(backbone)
+    
+    if not args.backbone:
+        # From state
+        backbones = None # from state for now, no need for conv nets
+    else:
+        # From image
+        backbones = []
+        backbone = build_backbone(args)
+        backbones.append(backbone)
 
     transformer = build_transformer(args)
 

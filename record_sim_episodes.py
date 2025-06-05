@@ -24,8 +24,8 @@ def main():
 
     task_name = "sim_transfer_cube_scripted"
     dataset_dir = "dataset_debug/"
-    num_episodes = 1
-    onscreen_render = True
+    num_episodes = 50
+    onscreen_render = False
     inject_noise = False
     render_cam_name = 'angle'
 
@@ -84,15 +84,14 @@ def main():
         subtask_info = episode[0].observation['env_state'].copy() # box pose at step 0
 
 
-        # debug start (shixu)
-        # Replace the first seven values of each element in joint_traj with the last seven values of the first element
-        reference_gripper_values = joint_traj[0][:7]
-        print(reference_gripper_values)
-        for joint in joint_traj:
-            joint[:7] = reference_gripper_values
-        # Remove the first seven values of each element in joint_traj
-        joint_traj = [joint[7:] for joint in joint_traj]
-        # debug end (shixu)
+        # # debug start (shixu)
+        # # Replace the first seven values of each element in joint_traj with the last seven values of the first element
+        # reference_gripper_values = joint_traj[0][:7]
+        # for joint in joint_traj:
+        #     joint[:7] = reference_gripper_values
+        # # Remove the first seven values of each element in joint_traj
+        # joint_traj = [joint[7:] for joint in joint_traj]
+        # # debug end (shixu)
 
         # clear unused variables
         del env
@@ -137,6 +136,7 @@ def main():
             - each_cam_name     (480, 640, 3) 'uint8'
         - qpos                  (14,)         'float64'
         - qvel                  (14,)         'float64'
+        - env_state             (7,)          'float64'
 
         action                  (14,)         'float64'
         """
@@ -144,10 +144,11 @@ def main():
         data_dict = {
             '/observations/qpos': [],
             '/observations/qvel': [],
+            '/observations/env_state': [],
             '/action': [],
         }
-        for cam_name in camera_names:
-            data_dict[f'/observations/images/{cam_name}'] = []
+        # for cam_name in camera_names:
+        #     data_dict[f'/observations/images/{cam_name}'] = []
 
         # because the replaying, there will be eps_len + 1 actions and eps_len + 2 timesteps
         # truncate here to be consistent
@@ -162,9 +163,10 @@ def main():
             ts = episode_replay.pop(0)
             data_dict['/observations/qpos'].append(ts.observation['qpos'])
             data_dict['/observations/qvel'].append(ts.observation['qvel'])
+            data_dict['/observations/env_state'].append(ts.observation['env_state'])
             data_dict['/action'].append(action)
-            for cam_name in camera_names:
-                data_dict[f'/observations/images/{cam_name}'].append(ts.observation['images'][cam_name])
+            # for cam_name in camera_names:
+            #     data_dict[f'/observations/images/{cam_name}'].append(ts.observation['images'][cam_name])
 
         # HDF5
         t0 = time.time()
@@ -172,14 +174,15 @@ def main():
         with h5py.File(dataset_path + '.hdf5', 'w', rdcc_nbytes=1024 ** 2 * 2) as root:
             root.attrs['sim'] = True
             obs = root.create_group('observations')
-            image = obs.create_group('images')
-            for cam_name in camera_names:
-                _ = image.create_dataset(cam_name, (max_timesteps, 480, 640, 3), dtype='uint8',
-                                         chunks=(1, 480, 640, 3), )
+            # image = obs.create_group('images')
+            # for cam_name in camera_names:
+            #     _ = image.create_dataset(cam_name, (max_timesteps, 480, 640, 3), dtype='uint8',
+            #                              chunks=(1, 480, 640, 3), )
             # compression='gzip',compression_opts=2,)
             # compression=32001, compression_opts=(0, 0, 0, 0, 9, 1, 1), shuffle=False)
             qpos = obs.create_dataset('qpos', (max_timesteps, 14))
             qvel = obs.create_dataset('qvel', (max_timesteps, 14))
+            env_state = obs.create_dataset('env_state', (max_timesteps, 7))
             action = root.create_dataset('action', (max_timesteps, 14))
 
             for name, array in data_dict.items():
