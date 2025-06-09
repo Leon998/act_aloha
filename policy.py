@@ -23,10 +23,6 @@ class ACTPolicy(nn.Module):
         # normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
         #                                  std=[0.229, 0.224, 0.225])
         # image = normalize(image)
-        # Normalize the first three elements of each state in env_state
-        mean = torch.tensor([0.0411963, 0.49580133, 0.12411231], device=env_state.device)
-        std = torch.tensor([0.08193929, 0.03863766, 0.09719542], device=env_state.device)
-        env_state[:, :3] = (env_state[:, :3] - mean) / std
 
         if actions is not None: # training time
             actions = actions[:, :self.model.num_queries]

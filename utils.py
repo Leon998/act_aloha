@@ -73,7 +73,7 @@ class EpisodicDataset(torch.utils.data.Dataset):
 
         # normalize image and change dtype to float
         # image_data = image_data / 255.0
-        env_state_data[:3] = (env_state_data[:3] - self.norm_stats["env_pos_mean"]) / self.norm_stats["env_pos_std"]
+        # env_state_data[:3] = (env_state_data[:3] - self.norm_stats["env_pos_mean"]) / self.norm_stats["env_pos_std"]
         action_data = (action_data - self.norm_stats["action_mean"]) / self.norm_stats["action_std"]
         qpos_data = (qpos_data - self.norm_stats["qpos_mean"]) / self.norm_stats["qpos_std"]
 
