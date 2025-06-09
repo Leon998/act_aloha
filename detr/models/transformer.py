@@ -52,11 +52,11 @@ class Transformer(nn.Module):
             # flatten NxCxHxW to HWxNxC
             bs, c, h, w = src.shape  # [8, 512, 15, 20]
             src = src.flatten(2).permute(2, 0, 1)  # [300, 8, 512]
-            pos_embed = pos_embed.flatten(2).permute(2, 0, 1).repeat(1, bs, 1)  # [300, 8, 512]
-            query_embed = query_embed.unsqueeze(1).repeat(1, bs, 1)  # [100, 8, 512]
+            pos_embed = pos_embed.flatten(2).permute(2, 0, 1).repeat(1, bs, 1)  # [1, 512, 15, 20]->[300, 8, 512]
+            query_embed = query_embed.unsqueeze(1).repeat(1, bs, 1)  # [100, 512]->[100, 8, 512]
             # mask = mask.flatten(1)
 
-            additional_pos_embed = additional_pos_embed.unsqueeze(1).repeat(1, bs, 1) # seq, bs, dim, [2, 8, 512]
+            additional_pos_embed = additional_pos_embed.unsqueeze(1).repeat(1, bs, 1) # seq, bs, dim, [2, 512]->[2, 8, 512]
             pos_embed = torch.cat([additional_pos_embed, pos_embed], axis=0)  # [302, 8, 512]
 
             addition_input = torch.stack([latent_input, proprio_input], axis=0)  # [2, 8, 512]
