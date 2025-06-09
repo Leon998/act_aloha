@@ -61,11 +61,18 @@ class Transformer(nn.Module):
 
             addition_input = torch.stack([latent_input, proprio_input], axis=0)
             src = torch.cat([addition_input, src], axis=0)
-        else:
-            assert len(src.shape) == 3
+        elif len(src.shape) == 3:
+            # assert len(src.shape) == 3
             # flatten NxHWxC to HWxNxC
             bs, hw, c = src.shape
             src = src.permute(1, 0, 2)
+            pos_embed = pos_embed.unsqueeze(1).repeat(1, bs, 1)
+            query_embed = query_embed.unsqueeze(1).repeat(1, bs, 1)
+        else:
+            # env_state
+            bs, c = src.shape
+            src = src.unsqueeze(0)
+            # src = src.permute(1, 0, 2)
             pos_embed = pos_embed.unsqueeze(1).repeat(1, bs, 1)
             query_embed = query_embed.unsqueeze(1).repeat(1, bs, 1)
 

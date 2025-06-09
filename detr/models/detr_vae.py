@@ -139,7 +139,7 @@ class DETRVAE(nn.Module):
             # hs = self.transformer(transformer_input, None, self.query_embed.weight, self.pos.weight)[0]
             proprio_input = self.input_proj_robot_state(qpos)
             env_state = self.input_proj_env_state(env_state)
-            hs = self.transformer(src, None, self.query_embed.weight, pos, latent_input, proprio_input, self.additional_pos_embed.weight)[0]
+            hs = self.transformer(env_state, None, self.query_embed.weight, self.pos.weight, latent_input, proprio_input, self.additional_pos_embed.weight)[0]
         a_hat = self.action_head(hs)
         is_pad_hat = self.is_pad_head(hs)
         return a_hat, is_pad_hat, [mu, logvar]
