@@ -61,6 +61,7 @@ class DETRVAE(nn.Module):
             self.input_proj_robot_state = nn.Linear(7, hidden_dim)
             self.input_proj_env_state = nn.Linear(7, hidden_dim)
             self.pos = torch.nn.Embedding(2, hidden_dim)
+            # self.pos = torch.nn.Embedding(1, hidden_dim)
             self.backbones = None
 
         # encoder extra parameters
@@ -139,9 +140,10 @@ class DETRVAE(nn.Module):
             # hs = self.transformer(transformer_input, None, self.query_embed.weight, self.pos.weight)[0]
             proprio_input = self.input_proj_robot_state(qpos)
             env_state = self.input_proj_env_state(env_state)
-            hs = self.transformer(env_state, None, self.query_embed.weight, self.pos.weight, latent_input, proprio_input, self.additional_pos_embed.weight)[0]
-        a_hat = self.action_head(hs)
-        is_pad_hat = self.is_pad_head(hs)
+            transformer_input = torch.cat([proprio_input.unsqueeze(0), env_state.unsqueeze(0)], axis=0) # seq length = 2, [2, 8, 512]
+            hs = self.transformer(transformer_input, None, self.query_embed.weight, self.pos.weight, latent_input, proprio_input, self.additional_pos_embed.weight)[0]
+        a_hat = self.action_head(hs)  # [8, 100, 7]
+        is_pad_hat = self.is_pad_head(hs)  # [8, 100, 1]
         return a_hat, is_pad_hat, [mu, logvar]
 
 
