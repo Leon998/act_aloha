@@ -260,11 +260,14 @@ def eval_bc(config, ckpt_name, save_episode=True):
                 qpos = torch.from_numpy(qpos).float().cuda().unsqueeze(0)
                 qpos_history[:, t] = qpos
                 curr_image = get_image(ts, camera_names)
+                curr_env_state = np.array(obs['env_state'])
+                curr_env_state = torch.from_numpy(curr_env_state).float().cuda().unsqueeze(0)
 
                 ### query policy
                 if config['policy_class'] == "ACT":
                     if t % query_frequency == 0:  # %取余数，每隔query_frequency推理一次
-                        all_actions = policy(qpos, curr_image)  # 即a_hat。形状: (1, num_queries=100, 7)
+                        # all_actions = policy(qpos, curr_image)  # 即a_hat。形状: (1, num_queries=100, 7)
+                        all_actions = policy(qpos, curr_env_state)  # 即a_hat。形状: (1, num_queries=100, 7)
                     if temporal_agg:  # 对action做指数加权
                         all_time_actions[[t], t:t+num_queries] = all_actions
                         actions_for_curr_step = all_time_actions[:, t]
