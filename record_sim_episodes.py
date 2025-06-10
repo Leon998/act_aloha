@@ -14,7 +14,7 @@ import IPython
 e = IPython.embed
 
 
-def main(args):
+def main():
     """
     Generate demonstration data in simulation.
     First rollout the policy (defined in ee space) in ee_sim_env. Obtain the joint trajectory.
@@ -23,10 +23,10 @@ def main(args):
     Save this episode of data, and continue to next episode of data collection.
     """
 
-    task_name = args['task_name']
-    dataset_dir = args['dataset_dir']
-    num_episodes = args['num_episodes']
-    onscreen_render = args['onscreen_render']
+    task_name = "sim_transfer_cube_scripted"
+    dataset_dir = "dataset_tmp/"
+    num_episodes = 50
+    onscreen_render = True
     inject_noise = False
     render_cam_name = 'angle'
 
@@ -179,11 +179,11 @@ def main(args):
     print(f'Success: {np.sum(success)} / {len(success)}')
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--task_name', action='store', type=str, help='task_name', required=True)
-    parser.add_argument('--dataset_dir', action='store', type=str, help='dataset saving dir', required=True)
-    parser.add_argument('--num_episodes', action='store', type=int, help='num_episodes', required=False)
-    parser.add_argument('--onscreen_render', action='store_true')
+    # parser = argparse.ArgumentParser()
+    # parser.add_argument('--task_name', action='store', type=str, help='task_name', required=True)
+    # parser.add_argument('--dataset_dir', action='store', type=str, help='dataset saving dir', required=True)
+    # parser.add_argument('--num_episodes', action='store', type=int, help='num_episodes', required=False)
+    # parser.add_argument('--onscreen_render', action='store_true')
     
-    main(vars(parser.parse_args()))
+    main()
 
