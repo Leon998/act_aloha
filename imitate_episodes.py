@@ -162,7 +162,6 @@ def get_image(ts, camera_names):
 
 
 def eval_bc(config, ckpt_name, save_episode=True):
-    left_arm_init = [0, -0.96, 1.16, 0, -0.3, 0, 0]
     set_seed(1000)
     ckpt_dir = config['ckpt_dir']
     state_dim = config['state_dim']
@@ -288,8 +287,6 @@ def eval_bc(config, ckpt_name, save_episode=True):
                 ### post-process actions
                 raw_action = raw_action.squeeze(0).cpu().numpy()
                 action = post_process(raw_action)
-                # 左臂初始化
-                action = np.concatenate((left_arm_init, action))
                 target_qpos = action
 
                 ### step the environment
