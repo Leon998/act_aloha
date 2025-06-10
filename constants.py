@@ -1,7 +1,7 @@
 import pathlib
 
 ### Task parameters
-DATA_DIR = '/home/shixu/dev_shixu/act_humanoid/dataset'
+DATA_DIR = '/home/shixu/dev_shixu/act_humanoid/dataset_master'
 SIM_TASK_CONFIGS = {
     'sim_transfer_cube_scripted':{
         'dataset_dir': DATA_DIR + '/sim_transfer_cube_scripted',
