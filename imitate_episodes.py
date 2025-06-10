@@ -49,8 +49,8 @@ def main(args):
     # fixed parameters
     state_dim = 7
     lr_backbone = 1e-5
-    # backbone = 'resnet18'
-    backbone = None
+    backbone = 'resnet18'
+    # backbone = None
     if policy_class == 'ACT':
         enc_layers = 4
         dec_layers = 7
@@ -266,8 +266,7 @@ def eval_bc(config, ckpt_name, save_episode=True):
                 ### query policy
                 if config['policy_class'] == "ACT":
                     if t % query_frequency == 0:  # %取余数，每隔query_frequency推理一次
-                        # all_actions = policy(qpos, curr_image)  # 即a_hat。形状: (1, num_queries=100, 7)
-                        all_actions = policy(qpos, curr_env_state)  # 即a_hat。形状: (1, num_queries=100, 7)
+                        all_actions = policy(qpos, curr_image)  # 即a_hat。形状: (1, num_queries=100, 7)
                     if temporal_agg:  # 对action做指数加权
                         all_time_actions[[t], t:t+num_queries] = all_actions
                         actions_for_curr_step = all_time_actions[:, t]
@@ -337,12 +336,9 @@ def eval_bc(config, ckpt_name, save_episode=True):
 
 
 def forward_pass(data, policy):
-    # image_data, qpos_data, action_data, is_pad = data
-    # image_data, qpos_data, action_data, is_pad = image_data.cuda(), qpos_data.cuda(), action_data.cuda(), is_pad.cuda()
-    # return policy(qpos_data, image_data, action_data, is_pad) # TODO remove None
-    env_state_data, qpos_data, action_data, is_pad = data
-    env_state_data, qpos_data, action_data, is_pad = env_state_data.cuda(), qpos_data.cuda(), action_data.cuda(), is_pad.cuda()
-    return policy(qpos_data, env_state_data, action_data, is_pad) # TODO remove None
+    image_data, qpos_data, action_data, is_pad = data
+    image_data, qpos_data, action_data, is_pad = image_data.cuda(), qpos_data.cuda(), action_data.cuda(), is_pad.cuda()
+    return policy(qpos_data, image_data, action_data, is_pad) # TODO remove None
 
 
 def train_bc(train_dataloader, val_dataloader, config):
