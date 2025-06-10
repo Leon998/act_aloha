@@ -47,7 +47,7 @@ def main(args):
     camera_names = task_config['camera_names']
 
     # fixed parameters
-    state_dim = 7
+    state_dim = 14
     lr_backbone = 1e-5
     # backbone = 'resnet18'
     backbone = None
@@ -103,9 +103,9 @@ def main(args):
 
     train_dataloader, val_dataloader, stats, _ = load_data(dataset_dir, num_episodes, camera_names, batch_size_train, batch_size_val)
     # train_dataloader.dataset中每个episode里包含的内容：
-    # env_state(at start_ts), (position + orientation)                                  shape: [7]
-    # qpos_data(at start_ts),                                                           shape: [7]
-    # action_data([:action_len]为截取到的action，[action_len:]全为0),                      shape: [400, 7]
+    # env_state(at start_ts), (position + orientation)                                  shape: [14]
+    # qpos_data(at start_ts),                                                           shape: [14]
+    # action_data([:action_len]为截取到的action，[action_len:]全为0),                      shape: [400, 14]
     # is_pad(帧是(True)否(False)是被填充的，[:action_len]为False，[action_len:]全为True)     shape: [400]
     ### 解释：
         # episode_len：每个episode的原始总长（默认为400）
@@ -255,7 +255,7 @@ def eval_bc(config, ckpt_name, save_episode=True):
                     image_list.append(obs['images'])
                 else:
                     image_list.append({'main': obs['image']})
-                qpos_numpy = np.array(obs['qpos'])[7:]
+                qpos_numpy = np.array(obs['qpos'])
                 qpos = pre_process(qpos_numpy)
                 qpos = torch.from_numpy(qpos).float().cuda().unsqueeze(0)
                 qpos_history[:, t] = qpos
@@ -266,8 +266,8 @@ def eval_bc(config, ckpt_name, save_episode=True):
                 ### query policy
                 if config['policy_class'] == "ACT":
                     if t % query_frequency == 0:  # %取余数，每隔query_frequency推理一次
-                        # all_actions = policy(qpos, curr_image)  # 即a_hat。形状: (1, num_queries=100, 7)
-                        all_actions = policy(qpos, curr_env_state)  # 即a_hat。形状: (1, num_queries=100, 7)
+                        # all_actions = policy(qpos, curr_image)  # 即a_hat。形状: (1, num_queries=100, 14)
+                        all_actions = policy(qpos, curr_env_state)  # 即a_hat。形状: (1, num_queries=100, 14)
                     if temporal_agg:  # 对action做指数加权
                         all_time_actions[[t], t:t+num_queries] = all_actions
                         actions_for_curr_step = all_time_actions[:, t]
