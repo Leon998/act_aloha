@@ -12,6 +12,26 @@ import IPython
 e = IPython.embed
 
 
+def interpolate_action_sequence(action_sequence, episode_len):
+    """
+    Interpolate the action sequence to match the episode length.
+    :param action_sequence: np.ndarray, shape (n_steps, n_actions)
+    :param episode_len: int, desired length of the episode
+    :return: np.ndarray, interpolated action sequence
+    """
+    if len(action_sequence) < episode_len:
+        interpolated_actions = []
+        for col in range(action_sequence.shape[1]):
+            interpolated_col = np.interp(
+                np.linspace(0, len(action_sequence) - 1, episode_len),
+                np.arange(len(action_sequence)),
+                action_sequence[:, col]
+            )
+            interpolated_actions.append(interpolated_col)
+        return np.array(interpolated_actions).T
+    else:
+        return action_sequence[:episode_len]
+
 def main():
     """
     Generate demonstration data in simulation.
@@ -23,7 +43,7 @@ def main():
 
     task_name = "hm_pnp"
     dataset_dir = "hm_dataset/"
-    num_episodes = 1
+    num_episodes = 3
     onscreen_render = True
     render_cam_name = 'fixed'
 
@@ -39,19 +59,9 @@ def main():
         ts = env.reset()
         episode = [ts]
         # Load action sequence from file
-        action_sequence_path = os.path.join(dataset_dir, "source/pnp_side_grasp_0/action_sequence.txt")
+        action_sequence_path = os.path.join(dataset_dir, f"source/pnp_side_grasp_{episode_idx}/action_sequence.txt")
         action_sequence = np.loadtxt(action_sequence_path)[:, :8]
-        # Interpolate action_sequence to match episode_len
-        if len(action_sequence) < episode_len:
-            interpolated_actions = []
-            for col in range(action_sequence.shape[1]):
-                interpolated_col = np.interp(
-                    np.linspace(0, len(action_sequence) - 1, episode_len),
-                    np.arange(len(action_sequence)),
-                    action_sequence[:, col]
-                )
-                interpolated_actions.append(interpolated_col)
-            action_sequence = np.array(interpolated_actions).T
+        action_sequence = interpolate_action_sequence(action_sequence, episode_len)
         # setup plotting
         if onscreen_render:
             ax = plt.subplot()
