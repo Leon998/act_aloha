@@ -21,8 +21,8 @@ def main():
     Save this episode of data, and continue to next episode of data collection.
     """
 
-    task_name = "humanoid_pnp"
-    dataset_dir = "dataset_tmp/"
+    task_name = "hm_pnp"
+    dataset_dir = "hm_dataset/"
     num_episodes = 1
     onscreen_render = True
     render_cam_name = 'fixed'
@@ -38,18 +38,32 @@ def main():
         env = make_sim_env(task_name)
         ts = env.reset()
         episode = [ts]
+        # Load action sequence from file
+        action_sequence_path = os.path.join(dataset_dir, "source/pnp_side_grasp_0/action_sequence.txt")
+        action_sequence = np.loadtxt(action_sequence_path)[:, :8]
+        # Interpolate action_sequence to match episode_len
+        if len(action_sequence) < episode_len:
+            interpolated_actions = []
+            for col in range(action_sequence.shape[1]):
+                interpolated_col = np.interp(
+                    np.linspace(0, len(action_sequence) - 1, episode_len),
+                    np.arange(len(action_sequence)),
+                    action_sequence[:, col]
+                )
+                interpolated_actions.append(interpolated_col)
+            action_sequence = np.array(interpolated_actions).T
         # setup plotting
         if onscreen_render:
             ax = plt.subplot()
             plt_img = ax.imshow(ts.observation['images'][render_cam_name])
             plt.ion()
         for step in range(episode_len):
-            action = np.array(START_ARM_POSE)
+            action = action_sequence[step]
             ts = env.step(action)
             episode.append(ts)
             if onscreen_render:
                 plt_img.set_data(ts.observation['images'][render_cam_name])
-                plt.pause(0.002)
+                plt.pause(0.001)
         plt.close()
 
 

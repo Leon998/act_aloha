@@ -138,6 +138,7 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-dataset*
-ckpt*
-assets/dualarmhand0513/
+*dataset*
+*ckpt*
+assets/dualarmhand0513/*
+!assets/dualarmhand0513/fixed_robot.xml

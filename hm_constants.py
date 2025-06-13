@@ -3,10 +3,10 @@ import pathlib
 ### Task parameters
 DATA_DIR = '/home/shixu/dev_shixu/act_humanoid/dataset_master'
 SIM_TASK_CONFIGS = {
-    'humanoid_pnp':{
-        'dataset_dir': DATA_DIR + '/humanoid_pnp',
+    'hm_pnp':{
+        'dataset_dir': DATA_DIR + '/hm_pnp',
         'num_episodes': 50,
-        'episode_len': 400,
+        'episode_len': 200,
         'camera_names': ['fixed']
     },
     'sim_transfer_cube_scripted':{
