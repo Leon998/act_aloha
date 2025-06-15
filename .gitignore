@@ -140,3 +140,5 @@ dmypy.json
 
 dataset*
 ckpt*
+assets/dualarmhand0513/*
+!assets/dualarmhand0513/fixed_robot.xml
