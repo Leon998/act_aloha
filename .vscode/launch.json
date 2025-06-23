@@ -18,9 +18,9 @@
                 "--num_epochs", "3",
                 "--lr", "1e-5",
                 "--seed", "0",
-                "--eval",
-                "--onscreen_render",
-                "--temporal_agg"
+                // "--eval",
+                // "--onscreen_render",
+                // "--temporal_agg"
             ],
             "console": "integratedTerminal",
             "justMyCode": true
